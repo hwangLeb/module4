@@ -1,36 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.0/contracts/token/ERC20/ERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.0/contracts/access/Ownable.sol";
 
 contract DegenToken is ERC20, Ownable {
-    mapping(uint256 => uint256) public itemPrices;
-
-    constructor() ERC20("Degen", "DGN") Ownable(msg.sender) {
+    struct InGameItem {
+        uint256 id;
+        string name;
+        uint256 price;
     }
-        
+
+    InGameItem[] public inGameItems;
+
+    constructor() ERC20("Degen", "DGN") {
+        inGameItems.push(InGameItem(1, "NewJeans Album", 100 * 1 ** decimals()));
+        inGameItems.push(InGameItem(2, "Le Sserafim Photocard", 200 * 1 ** decimals()));
+        inGameItems.push(InGameItem(3, "GFriend Lightstick ver. 3", 500 * 1 ** decimals()));
+    }
+
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
-    function burn(uint256 amount) public {
-        _burn(msg.sender, amount);
-    }
-     function transfer(address to, uint256 amount) public override returns (bool) {
-        require(to != address(0), "ERC20: transfer to the zero address");
-        return super.transfer(to, amount);
+
+    function transferTokens(address to, uint256 amount) public {
+        require(amount > 0, "Transfer amount must be greater than 0");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+
+        _transfer(msg.sender, to, amount);
     }   
-    function redeemItems(uint256 itemId, uint256 price) external onlyOwner {
-        itemPrices[itemId] = price;
+
+    function redeemTokens(uint256 itemId) public {
+        require(itemId < inGameItems.length, "Invalid item ID");
+        InGameItem storage item = inGameItems[itemId];
+        require(balanceOf(msg.sender) >= item.price, "Insufficient balance");
+        _burn(msg.sender, item.price);
     }
 
-    function redeem(uint256 itemId) public {
-        uint256 price = itemPrices[itemId];
-        require(price > 0, "Item not available for redemption");
-        require(balanceOf(msg.sender) >= price, "Insufficient balance");
-        _burn(msg.sender, price);
+    function checkTokenBalance(address account) public view returns (uint256) {
+        return balanceOf(account);
     }
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        return super.balanceOf(account);
+
+    function burnTokens(uint256 amount) public {
+        require(amount > 0, "Burn amount must be greater than 0");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+
+        _burn(msg.sender, amount);
     }
 }
